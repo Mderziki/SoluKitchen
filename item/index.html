@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>&lt;model-viewer&gt; template</title>
+    <meta charset="utf-8">
+    <meta name="description" content="&lt;model-viewer&gt; template">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link type="text/css" href="./styles.css" rel="stylesheet"/>
+    <link type="text/css" href="./styles1.css" rel="stylesheet"/>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+      }
+      #shoe {
+        width: 100%;
+        height: 100%;
+      }
+      .controls {
+        position: absolute;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 20px;
+        z-index: 10;
+      }
+      .color-button {
+        width: 80px;
+        height: 80px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background-size: cover;
+        background-position: center;
+      }
+      .color-button.active {
+        transform: scale(1.1);
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      }
+      #fullscreen-button {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(255, 255, 255, 0.8);
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 10;
+      }
+      #fullscreen-button svg {
+        width: 24px;
+        height: 24px;
+      }
+      #fullscreen-button.hidden {
+        display: none;
+      }
+      .popup {
+        display: none;
+        position: fixed;
+        border-radius: 10px;
+        transform: translate(-50%, -100%);
+        z-index: 20;
+      }
+      .popup-content {
+        display: flex;
+        gap: 10px;
+      }
+      .variant-button {
+        width: 80px;
+        height: 80px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        background-size: cover;
+        background-position: center;
+      }
+
+      /* Media Queries for Responsiveness */
+      @media (max-width: 768px) {
+        #shoe {
+          height: 100vh;
+        }
+        .controls {
+          bottom: 10px;
+        }
+        .color-button {
+          width: 40px;
+          height: 40px;
+        }
+        .popup {
+          width: 90%;
+          max-width: 300px;
+          padding: 15px;
+        }
+        .popup-content {
+          flex-wrap: wrap;
+          justify-content: center;
+        }
+        .variant-button {
+          width: 60px;
+          height: 60px;
+        }
+      }
+
+      @media (max-width: 480px) {
+        #shoe {
+          height: 100vh;
+        }
+        .controls {
+          gap: 10px;
+        }
+        .color-button {
+          width: 30px;
+          height: 30px;
+        }
+        #fullscreen-button {
+          width: 30px;
+          height: 30px;
+        }
+        #fullscreen-button svg {
+          width: 18px;
+          height: 18px;
+        }
+        #selected-variant {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <model-viewer id="shoe" camera-controls touch-action="pan-y" src="Kitch4.glb" tone-mapping="neutral" ar alt="A 3D model of a Shoe">
+      <div class="controls" id="color-buttons"></div>
+      <button id="fullscreen-button" aria-label="Enter fullscreen">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+        </svg>
+      </button>
+      <div id="popup" class="popup">
+        <div class="popup-content" id="variant-buttons"></div>
+      </div>
+    </model-viewer>
+
+    <script>
+      const modelViewerVariants = document.querySelector("model-viewer#shoe");
+      const colorButtons = document.getElementById('color-buttons');
+      const variantButtons = document.getElementById('variant-buttons');
+      const fullscreenButton = document.getElementById('fullscreen-button');
+      const selectedVariantDisplay = document.getElementById('selected-variant');
+      const popup = document.getElementById('popup');
+
+      const colors = ['Red', 'Green', 'Blue'];
+      const variants = {
+        Red: ['Front1', 'Front2', 'Front3', 'Front4', 'Front5'],
+        Green: ['Work1', 'Work2', 'Work3', 'Work4', 'Work5'],
+        Blue: ['App1', 'App2', 'App3', 'App4', 'App5']
+      };
+      let currentColor = 'Red';
+      let currentVariantIndex = 0;
+      let lastClickedButton = null;
+
+      const colorImages = {
+        'Red': './images/Red.png',
+        'Green': './images/Green.png',
+        'Blue': './images/Blue.png'
+      };
+
+      const variantImages = {
+        'Front1': './images/Front1.png',
+        'Front2': './images/Front2.png',
+        'Front3': './images/Front3.png',
+        'Front4': './images/Front4.png',
+        'Front5': './images/Front5.png',
+        'Work1': './images/Work1.png',
+        'Work2': './images/Work2.png',
+        'Work3': './images/Work3.png',
+        'Work4': './images/Work4.png',
+        'Work5': './images/Work5.png',
+        'App1': './images/App1.png',
+        'App2': './images/App2.png',
+        'App3': './images/App3.png',
+        'App4': './images/App4.png',
+        'App5': './images/App5.png'
+      };
+
+      modelViewerVariants.addEventListener('load', () => {
+        createColorButtons();
+        updateVariantButtons();
+        updateSelectedVariant();
+      });
+
+      function createColorButtons() {
+        colors.forEach(color => {
+          const button = document.createElement('button');
+          button.classList.add('color-button');
+          button.style.backgroundImage = `url(${colorImages[color]})`;
+          button.onclick = (event) => togglePopup(event, button, color);
+          colorButtons.appendChild(button);
+        });
+      }
+
+      function updateVariantButtons() {
+        variantButtons.innerHTML = '';
+        variants[currentColor].forEach(variant => {
+          const button = document.createElement('button');
+          button.classList.add('variant-button');
+          button.style.backgroundImage = `url(${variantImages[variant]})`;
+          button.onclick = () => selectVariant(variant);
+          variantButtons.appendChild(button);
+        });
+      }
+
+      function togglePopup(event, button, color) {
+        document.querySelectorAll('.color-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+
+        if (lastClickedButton === button && popup.style.display === 'block') {
+          hidePopup();
+          button.classList.remove('active');
+        } else {
+          currentColor = color;
+          updateVariantButtons();
+          showPopup(event, button);
+          button.classList.add('active');
+        }
+        lastClickedButton = button;
+      }
+
+      function showPopup(event, button) {
+        const rect = button.getBoundingClientRect();
+        const viewportHeight = window.innerHeight;
+        const popupHeight = popup.offsetHeight;
+        
+        popup.style.left = `${rect.left + rect.width / 2}px`;
+        
+        if (rect.top > popupHeight + 20) {
+          popup.style.top = `${rect.top - 20}px`;
+          popup.style.transform = 'translate(-50%, -100%)';
+        } else {
+          popup.style.top = `${rect.bottom + 20}px`;
+          popup.style.transform = 'translate(-50%, 0)';
+        }
+        
+        popup.style.display = 'block';
+      }
+
+      function hidePopup() {
+        popup.style.display = 'none';
+      }
+
+      function selectVariant(variant) {
+        modelViewerVariants.variantName = variant;
+        currentVariantIndex = variants[currentColor].indexOf(variant);
+        updateSelectedVariant();
+        hidePopup();
+        document.querySelectorAll('.color-button').forEach(btn => {
+          btn.classList.remove('active');
+        });
+      }
+
+      function updateSelectedVariant() {
+        const variant = variants[currentColor][currentVariantIndex];
+        selectedVariantDisplay.textContent = `Selected: ${variant}`;
+      }
+
+      fullscreenButton.addEventListener('click', () => {
+        if (!document.fullscreenElement) {
+          modelViewerVariants.requestFullscreen();
+        } else {
+          document.exitFullscreen();
+        }
+      });
+
+      document.addEventListener('fullscreenchange', () => {
+        if (document.fullscreenElement) {
+          fullscreenButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+            </svg>
+          `;
+          fullscreenButton.setAttribute('aria-label', 'Exit fullscreen');
+        } else {
+          fullscreenButton.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+            </svg>
+          `;
+          fullscreenButton.setAttribute('aria-label', 'Enter fullscreen');
+        }
+      });
+
+      modelViewerVariants.addEventListener('ar-status', (event) => {
+        if (event.detail.status === 'session-started') {
+          fullscreenButton.classList.add('hidden');
+        } else if (event.detail.status === 'not-presenting') {
+          fullscreenButton.classList.remove('hidden');
+        }
+      });
+
+      document.addEventListener('click', (event) => {
+        if (!popup.contains(event.target) && !colorButtons.contains(event.target)) {
+          hidePopup();
+          lastClickedButton = null;
+          document.querySelectorAll('.color-button').forEach(btn => {
+            btn.classList.remove('active');
+          });
+        }
+      });
+
+      window.addEventListener('resize', () => {
+        if (lastClickedButton) {
+          showPopup(null, lastClickedButton);
+        }
+      });
+    </script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+  </body>
+</html>
